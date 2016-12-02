@@ -52,19 +52,18 @@ def main():
 			print "|----[!] " + str(ip_address) + " -> " + str(port) + " " + porc + "%"
 			#Obtenemos el mensaje del servidor en el puerto 
 			Banner = banner_grabbing_web(ip_address, port)
-			else:
 			#Variables obtenidas de la geoIp
-				data_geoIP = geoIp(ip_address)
-				data_geoIP = json.load(data_geoIP)
-				Country = data_geoIP["country"]
-				City = data_geoIP["city"]
-				regionName = data_geoIP["regionName"]
-				ISP = data_geoIP["isp"]
-				Latitud = data_geoIP["lat"]
-				Longitud = data_geoIP["lon"]
-				date_Insert = time.strftime("%H:%M:%S")
-				date_Update = "none"
-				insert_mongodb(ip_address, Country, City, regionName, ISP, port, Banner, Latitud, Longitud, date_Insert, date_Update)
+			data_geoIP = geoIp(ip_address)
+			data_geoIP = json.load(data_geoIP)
+			Country = data_geoIP["country"]
+			City = data_geoIP["city"]
+			regionName = data_geoIP["regionName"]
+			ISP = data_geoIP["isp"]
+			Latitud = data_geoIP["lat"]
+			Longitud = data_geoIP["lon"]
+			date_Insert = time.strftime("%H:%M:%S")
+			date_Update = "none"
+			insert_mongodb(ip_address, Country, City, regionName, ISP, port, Banner, Latitud, Longitud, date_Insert, date_Update)
 
 if __name__ == '__main__':
 	main()
