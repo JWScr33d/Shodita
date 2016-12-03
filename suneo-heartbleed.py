@@ -27,7 +27,6 @@ def get_target():
 	cursor = db.ShoditaCybercamp.find({"bot":"Nobita", "port":"443"})
 	for document in cursor:
 		scan_heartbleed(document["ip"].replace("\n",""), document["port"])
-	cursor = db.ShoditaCybercamp.find({"bot":"Nobita", "port":"10000"})
 
 def scan_heartbleed(target, port):
 	url = "https://filippo.io/Heartbleed/#"
