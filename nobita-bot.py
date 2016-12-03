@@ -6,6 +6,7 @@ from pymodbus.client.sync import ModbusTcpClient
 import snap7
 from snap7.util import *
 from bs4 import BeautifulSoup
+import config
 
 #Colores
 class colores:
@@ -18,7 +19,6 @@ class colores:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 #Lista de puertos que escanea el bot
-portList = [21,22,23,25,53,63,80,90,102,110,143,161,443,500,502,503,513,520,559,1434,3306,3389,5000,5050, 5060,8000,8069,8080,8081,9443,10000,27017, 28017] 
 totalPuertos =  len(portList)
 ip_root = ""
 
